@@ -124,3 +124,41 @@ silently continuing with unsupported information.
 
 The assistant models document retrieval as a **bounded tool call** rather than an agent-to-agent interaction. Retrieval is a specific, stateless operation that returns relevant evidence, while the main agent decides when and what to search next. This keeps the architecture simple and gives the agent control over the overall reasoning process.
 
+## How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone -b w16-agentic-assistant https://github.com/AbishekBhandari/AI-assistant.git
+cd AI-assistant
+```
+### 2. Configure environment variables
+```bash
+copy .env.example .env
+```
+### 3. Start the application
+
+Build and start all services using Docker Compose:
+```bash
+docker compose up --build
+```
+### 4. Access the application
+Streamlit UI: http://localhost:8501
+FastAPI Backend: http://localhost:8000
+Qdrant: http://localhost:6333
+
+### 5. Run the evaluation harness
+
+In another terminal:
+docker compose exec -e PYTHONPATH=/app backend python -m evaluation.evaluate_agent
+
+### 6. Run the failure injection test
+docker compose exec -e PYTHONPATH=/app backend python -m evaluation.failure_injection
+Evaluation results are saved in:
+evaluation/results.json
+evaluation/failure_test_results.json
+
+### 7. Stop the application
+```bash
+docker compose down
+
