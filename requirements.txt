@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+openai
+python-dotenv
+pydantic
+qdrant-client
+sentence-transformers
+pypdf
+streamlit
+requests
+tenacity
+slowapi
+cachetools
