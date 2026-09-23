@@ -150,10 +150,13 @@ Qdrant: http://localhost:6333
 ### 5. Run the evaluation harness
 
 In another terminal:
+```bash
 docker compose exec -e PYTHONPATH=/app backend python -m evaluation.evaluate_agent
-
+```
 ### 6. Run the failure injection test
+```bash
 docker compose exec -e PYTHONPATH=/app backend python -m evaluation.failure_injection
+```
 Evaluation results are saved in:
 evaluation/results.json
 evaluation/failure_test_results.json
