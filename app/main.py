@@ -1,25 +1,32 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from app.llm import generate_response
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-from fastapi import HTTPException, Request
+
+from app.agent import run_agent
+
 
 app = FastAPI(
     title="AI Assistant",
-    description="AI Assistant using LLM APIs",
-    version="1.0.0"
+    description="Agentic AI Assistant",
+    version="2.0.0"
 )
 
-limiter = Limiter(key_func=get_remote_address)
+
+limiter = Limiter(
+    key_func=get_remote_address
+)
 
 app.state.limiter = limiter
+
 app.add_exception_handler(
     RateLimitExceeded,
     _rate_limit_exceeded_handler
 )
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -33,12 +40,28 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def root():
-    return {"message": "AI Assistant API is running"}
+    return {
+        "message": "Agentic AI Assistant API is running"
+    }
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.get("/health")
+def health():
+    return {
+        "status": "ok"
+    }
+
+
+@app.post(
+    "/chat",
+    response_model=ChatResponse
+)
 @limiter.limit("10/minute")
-async def chat(request: Request, chat_request: ChatRequest):
+async def chat(
+    request: Request,
+    chat_request: ChatRequest
+):
+
     if not chat_request.message.strip():
         raise HTTPException(
             status_code=400,
@@ -46,18 +69,28 @@ async def chat(request: Request, chat_request: ChatRequest):
         )
 
     try:
-        response = await generate_response(chat_request.message)
-        return ChatResponse(**response)
+
+        result = await run_agent(
+            chat_request.message
+        )
+
+        return ChatResponse(**result)
 
     except ValueError as e:
+
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
 
     except Exception as e:
-        print(f"CHAT ERROR: {e}", flush=True)
+
+        print(
+            f"CHAT ERROR: {e}",
+            flush=True
+        )
+
         raise HTTPException(
             status_code=503,
-            detail=str(e)
+            detail="AI service is temporarily unavailable."
         )

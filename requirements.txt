@@ -3,7 +3,7 @@ uvicorn[standard]
 openai
 python-dotenv
 pydantic
-qdrant-client
+qdrant-client==1.13.3
 sentence-transformers
 pypdf
 streamlit

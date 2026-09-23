@@ -1,0 +1,6 @@
+{
+  "test": "Malformed retrieval output",
+  "passed": true,
+  "classification": "Hard failure",
+  "reason": "The malformed retrieval output caused the system to stop safely: Malformed retrieval result: missing 'source' field."
+}

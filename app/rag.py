@@ -3,7 +3,14 @@ from pathlib import Path
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import (
+    Distance,
+    VectorParams,
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchValue
+)
 
 
 COLLECTION_NAME = "documents"
@@ -24,12 +31,15 @@ def read_document(file_path):
 
     if path.suffix.lower() == ".pdf":
         reader = PdfReader(file_path)
+
         return "\n".join(
             page.extract_text() or ""
             for page in reader.pages
         )
 
-    raise ValueError("Unsupported file type")
+    raise ValueError(
+        f"Unsupported file type: {path.suffix}"
+    )
 
 
 def chunk_text(text, chunk_size=500):
@@ -37,19 +47,68 @@ def chunk_text(text, chunk_size=500):
 
     chunks = []
 
-    for i in range(0, len(words), chunk_size):
-        chunks.append(" ".join(words[i:i + chunk_size]))
+    for i in range(
+        0,
+        len(words),
+        chunk_size
+    ):
+        chunk = " ".join(
+            words[i:i + chunk_size]
+        )
+
+        if chunk.strip():
+            chunks.append(chunk)
 
     return chunks
 
 
-def ingest_document(file_path):
+def ingest_documents(directory="documents"):
 
-    text = read_document(file_path)
+    directory = Path(directory)
 
-    chunks = chunk_text(text)
+    documents = (
+        list(directory.glob("*.pdf"))
+        + list(directory.glob("*.txt"))
+    )
 
-    embeddings = model.encode(chunks)
+    if not documents:
+        raise ValueError(
+            "No documents found."
+        )
+
+    all_chunks = []
+
+    for document in documents:
+
+        print(
+            f"Reading: {document.name}",
+            flush=True
+        )
+
+        text = read_document(document)
+
+        chunks = chunk_text(text)
+
+        for chunk in chunks:
+
+            all_chunks.append({
+                "text": chunk,
+                "source": document.name
+            })
+
+    print(
+        f"Total chunks: {len(all_chunks)}",
+        flush=True
+    )
+
+    texts = [
+        item["text"]
+        for item in all_chunks
+    ]
+
+    embeddings = model.encode(
+        texts
+    )
 
     client.recreate_collection(
         collection_name=COLLECTION_NAME,
@@ -61,12 +120,18 @@ def ingest_document(file_path):
 
     points = []
 
-    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+    for i, (item, embedding) in enumerate(
+        zip(all_chunks, embeddings)
+    ):
+
         points.append(
             PointStruct(
                 id=i,
                 vector=embedding.tolist(),
-                payload={"text": chunk}
+                payload={
+                    "text": item["text"],
+                    "source": item["source"]
+                }
             )
         )
 
@@ -75,17 +140,47 @@ def ingest_document(file_path):
         points=points
     )
 
-    return len(chunks)
+    return len(all_chunks)
 
 
-def search_documents(query, limit=3):
+def search_documents(
+    query,
+    limit=2,
+    source=None
+):
+    """
+    Search all documents or restrict the search
+    to a specific source document.
+    """
 
     query_embedding = model.encode(query)
+
+    query_filter = None
+
+    if source:
+
+        query_filter = Filter(
+            must=[
+                FieldCondition(
+                    key="source",
+                    match=MatchValue(
+                        value=source
+                    )
+                )
+            ]
+        )
 
     results = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_embedding.tolist(),
+        query_filter=query_filter,
         limit=limit
     ).points
 
-    return [result.payload["text"] for result in results]
+    return [
+        {
+            "text": result.payload["text"],
+            "source": result.payload["source"]
+        }
+        for result in results
+    ]
