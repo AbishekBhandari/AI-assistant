@@ -1,5 +1,4 @@
 services:
-
   backend:
     build: .
     container_name: ai-assistant-backend
@@ -14,7 +13,7 @@ services:
   frontend:
     build: .
     container_name: ai-assistant-frontend
-    command: python -m streamlit run app/ui.py --server.address=0.0.0.0 --server.port=8501
+    command: uv run --no-sync streamlit run app/ui.py --server.address=0.0.0.0 --server.port=8501
     ports:
       - "8501:8501"
     env_file:

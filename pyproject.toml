@@ -1,0 +1,21 @@
+[project]
+name = "ai-assistant"
+version = "0.1.0"
+description = "Agentic AI Assistant with RAG and MLOps"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "openai",
+    "python-dotenv",
+    "pydantic",
+    "qdrant-client==1.13.3",
+    "sentence-transformers",
+    "pypdf",
+    "streamlit",
+    "requests",
+    "tenacity",
+    "slowapi",
+    "cachetools",
+]
